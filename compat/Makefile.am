@@ -1,0 +1,15 @@
+noinst_HEADERS = \
+	imsg.h \
+	compat.h
+
+dist_noinst_DATA = \
+	arc4random.c \
+	base64.c \
+	imsg-buffer.c \
+	imsg.c \
+	memrchr.c \
+	parse.c \
+	strlcat.c \
+	strlcpy.c \
+	strtonum.c
+

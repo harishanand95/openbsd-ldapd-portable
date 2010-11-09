@@ -1,2 +1,2 @@
-SUBDIRS = ldapd ldapctl
+SUBDIRS = ldapd ldapctl compat
 

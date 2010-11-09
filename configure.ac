@@ -159,6 +159,6 @@ fi
 
 
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile ldapd/Makefile ldapctl/Makefile])
+AC_CONFIG_FILES([Makefile ldapd/Makefile ldapctl/Makefile compat/Makefile])
 AC_OUTPUT
 
