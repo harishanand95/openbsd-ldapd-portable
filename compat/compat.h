@@ -29,8 +29,13 @@
 # include <sys/file.h>
 #endif
 
+#ifndef __dead
 #define __dead
+#endif
+
+#ifndef __packed
 #define __packed __attribute__ ((__packed__))
+#endif
 
 #ifndef HAVE_ARC4RANDOM
 unsigned int	 arc4random(void);
