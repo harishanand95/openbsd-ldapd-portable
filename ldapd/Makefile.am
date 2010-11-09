@@ -32,7 +32,9 @@ noinst_HEADERS = \
 	aldap.h \
 	ber.h \
 	btree.h \
+	imsgev.h \
 	ldapd.h \
+	schema.h \
 	uuid.h
 
 dist_noinst_DATA = btree.3
