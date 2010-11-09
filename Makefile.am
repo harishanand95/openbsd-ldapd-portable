@@ -1,0 +1,2 @@
+SUBDIRS = ldapd ldapctl
+

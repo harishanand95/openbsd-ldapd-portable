@@ -36,6 +36,7 @@
 #include <unistd.h>
 
 #include "btree.h"
+#include "compat.h"
 
 /* #define DEBUG */
 

@@ -23,7 +23,6 @@
 #include <errno.h>
 #include <openssl/sha.h>
 #include <pwd.h>
-#include <resolv.h>		/* for b64_pton */
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -201,7 +200,7 @@ check_password(struct request *req, const char *stored_passwd,
 		return -1;
 
 	if (strncmp(stored_passwd, "{SHA}", 5) == 0) {
-		sz = b64_pton(stored_passwd + 5, tmp, sizeof(tmp));
+		sz = base64_pton(stored_passwd + 5, tmp, sizeof(tmp));
 		if (sz != SHA_DIGEST_LENGTH)
 			return (-1);
 		SHA1_Init(&ctx);
@@ -209,7 +208,7 @@ check_password(struct request *req, const char *stored_passwd,
 		SHA1_Final(md, &ctx);
 		return (bcmp(md, tmp, SHA_DIGEST_LENGTH) ? 1 : 0);
 	} else if (strncmp(stored_passwd, "{SSHA}", 6) == 0) {
-		sz = b64_pton(stored_passwd + 6, tmp, sizeof(tmp));
+		sz = base64_pton(stored_passwd + 6, tmp, sizeof(tmp));
 		if (sz <= SHA_DIGEST_LENGTH)
 			return (-1);
 		salt = tmp + SHA_DIGEST_LENGTH;

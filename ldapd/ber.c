@@ -31,6 +31,7 @@
 #include <stdarg.h>
 
 #include "ber.h"
+#include "compat.h"
 
 
 #define BER_TYPE_CONSTRUCTED	0x20	/* otherwise primitive */

@@ -36,6 +36,7 @@
 #include "schema.h"
 #include "btree.h"
 #include "imsgev.h"
+#include "compat.h"
 
 #define CONFFILE		 "/etc/ldapd.conf"
 #define LDAPD_USER		 "_ldapd"

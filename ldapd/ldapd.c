@@ -21,13 +21,17 @@
 #include <sys/wait.h>
 
 #include <assert.h>
+#ifdef HAVE_AUTH_USEROKAY
 #include <bsd_auth.h>
+#endif
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <event.h>
 #include <fcntl.h>
+#ifdef HAVE_AUTH_USEROKAY
 #include <login_cap.h>
+#endif
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -201,7 +205,9 @@ main(int argc, char *argv[])
 
 	ldape_pid = ldape(pw, csockpath, pipe_parent2ldap);
 
+#ifdef HAVE_SETPROCTITLE
 	setproctitle("auth");
+#endif
 	event_init();
 
 	signal_set(&ev_sigint, SIGINT, ldapd_sig_handler, NULL);
@@ -260,6 +266,7 @@ ldapd_imsgev(struct imsgev *iev, int code, struct imsg *imsg)
 	}
 }
 
+#ifdef HAVE_AUTH_USEROKAY
 static int
 ldapd_auth_classful(char *name, char *password)
 {
@@ -298,6 +305,7 @@ ldapd_auth_classful(char *name, char *password)
 	login_close(lc);
 	return (as != NULL ? auth_close(as) : 0);
 }
+#endif
 
 static void
 ldapd_auth_request(struct imsgev *iev, struct imsg *imsg)
@@ -313,7 +321,11 @@ ldapd_auth_request(struct imsgev *iev, struct imsg *imsg)
 	areq->password[sizeof(areq->password) - 1] = '\0';
 
 	log_debug("authenticating [%s]", areq->name);
+#ifdef HAVE_AUTH_USEROKAY
 	ares.ok = ldapd_auth_classful(areq->name, areq->password);
+#else
+	ares.ok = 0;
+#endif
 	ares.fd = areq->fd;
 	ares.msgid = areq->msgid;
 	bzero(areq, sizeof(*areq));

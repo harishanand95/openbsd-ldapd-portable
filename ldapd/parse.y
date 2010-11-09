@@ -100,6 +100,7 @@ typedef struct {
 	} v;
 	int lineno;
 } YYSTYPE;
+#define YYSTYPE YYSTYPE
 
 static struct namespace *current_ns = NULL;
 
@@ -898,7 +899,9 @@ host_unix(const char *path)
 	if ((h = calloc(1, sizeof(*h))) == NULL)
 		fatal(NULL);
 	saun = (struct sockaddr_un *)&h->ss;
+#if defined(HAVE_SS_LEN_IN_SS) || defined(HAVE___SS_LEN_IN_SS)
 	saun->sun_len = sizeof(struct sockaddr_un);
+#endif
 	saun->sun_family = AF_UNIX;
 	if (strlcpy(saun->sun_path, path, sizeof(saun->sun_path)) >=
 	    sizeof(saun->sun_path))
@@ -922,7 +925,9 @@ host_v4(const char *s, in_port_t port)
 	if ((h = calloc(1, sizeof(*h))) == NULL)
 		fatal(NULL);
 	sain = (struct sockaddr_in *)&h->ss;
+#if defined(HAVE_SS_LEN_IN_SS) || defined(HAVE___SS_LEN_IN_SS)
 	sain->sin_len = sizeof(struct sockaddr_in);
+#endif
 	sain->sin_family = AF_INET;
 	sain->sin_addr.s_addr = ina.s_addr;
 	sain->sin_port = port;
@@ -944,7 +949,9 @@ host_v6(const char *s, in_port_t port)
 	if ((h = calloc(1, sizeof(*h))) == NULL)
 		fatal(NULL);
 	sin6 = (struct sockaddr_in6 *)&h->ss;
+#if defined(HAVE_SS_LEN_IN_SS) || defined(HAVE___SS_LEN_IN_SS)
 	sin6->sin6_len = sizeof(struct sockaddr_in6);
+#endif
 	sin6->sin6_family = AF_INET6;
 	sin6->sin6_port = port;
 	memcpy(&sin6->sin6_addr, &ina6, sizeof(ina6));
@@ -991,13 +998,17 @@ host_dns(const char *s, const char *cert,
 
 		if (res->ai_family == AF_INET) {
 			sain = (struct sockaddr_in *)&h->ss;
+#if defined(HAVE_SS_LEN_IN_SS) || defined(HAVE___SS_LEN_IN_SS)
 			sain->sin_len = sizeof(struct sockaddr_in);
+#endif
 			sain->sin_addr.s_addr = ((struct sockaddr_in *)
 			    res->ai_addr)->sin_addr.s_addr;
 			sain->sin_port = port;
 		} else {
 			sin6 = (struct sockaddr_in6 *)&h->ss;
+#if defined(HAVE_SS_LEN_IN_SS) || defined(HAVE___SS_LEN_IN_SS)
 			sin6->sin6_len = sizeof(struct sockaddr_in6);
+#endif
 			memcpy(&sin6->sin6_addr, &((struct sockaddr_in6 *)
 			    res->ai_addr)->sin6_addr, sizeof(struct in6_addr));
 			sin6->sin6_port = port;
@@ -1069,7 +1080,9 @@ interface(const char *s, const char *cert,
 				fatal(NULL);
 			sain = (struct sockaddr_in *)&h->ss;
 			*sain = *(struct sockaddr_in *)p->ifa_addr;
+#if defined(HAVE_SS_LEN_IN_SS) || defined(HAVE___SS_LEN_IN_SS)
 			sain->sin_len = sizeof(struct sockaddr_in);
+#endif
 			sain->sin_port = port;
 
 			h->fd = -1;
@@ -1090,7 +1103,9 @@ interface(const char *s, const char *cert,
 				fatal(NULL);
 			sin6 = (struct sockaddr_in6 *)&h->ss;
 			*sin6 = *(struct sockaddr_in6 *)p->ifa_addr;
+#if defined(HAVE_SS_LEN_IN_SS) || defined(HAVE___SS_LEN_IN_SS)
 			sin6->sin6_len = sizeof(struct sockaddr_in6);
+#endif
 			sin6->sin6_port = port;
 
 			h->fd = -1;

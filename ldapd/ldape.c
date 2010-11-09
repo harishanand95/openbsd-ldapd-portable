@@ -347,7 +347,9 @@ ldape(struct passwd *pw, char *csockpath, int pipe_parent2ldap[2])
 	if (pid > 0)
 		return pid;
 
+#ifdef HAVE_SETPROCTITLE
 	setproctitle("ldap server");
+#endif
 	event_init();
 
 	signal_set(&ev_sigint, SIGINT, ldape_sig_handler, NULL);
@@ -426,8 +428,13 @@ ldape(struct passwd *pw, char *csockpath, int pipe_parent2ldap[2])
 			fatal("chdir(\"/\")");
 
 		if (setgroups(1, &pw->pw_gid) ||
+#ifdef HAVE_SETRESGID
 		    setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid) ||
 		    setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid))
+#else
+		    setregid(pw->pw_gid, pw->pw_gid) ||
+		    setreuid(pw->pw_uid, pw->pw_uid))
+#endif
 			fatal("cannot drop privileges");
 	}
 
