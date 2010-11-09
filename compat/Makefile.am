@@ -10,7 +10,6 @@ dist_noinst_DATA = \
 	imsg-buffer.c \
 	imsg.c \
 	memrchr.c \
-	parse.c \
 	strlcat.c \
 	strlcpy.c \
 	strtonum.c
