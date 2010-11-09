@@ -16,12 +16,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include "compat.h"
+
 #include <sys/types.h>
 #include <sys/tree.h>
 #include <sys/stat.h>
 #include <sys/queue.h>
 #include <sys/param.h>
 #include <sys/uio.h>
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
 
 #include <assert.h>
 #include <err.h>
@@ -36,7 +41,6 @@
 #include <unistd.h>
 
 #include "btree.h"
-#include "compat.h"
 
 /* #define DEBUG */
 

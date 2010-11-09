@@ -163,7 +163,11 @@ fatalx(const char *emsg)
 const char *
 print_host(struct sockaddr_storage *ss, char *buf, size_t len)
 {
+#if defined(HAVE_SS_LEN_IN_SS) || defined(HAVE___SS_LEN_IN_SS)
 	if (getnameinfo((struct sockaddr *)ss, ss->ss_len,
+#else
+	if (getnameinfo((struct sockaddr *)ss, sizeof(*ss),
+#endif
 	    buf, len, NULL, 0, NI_NUMERICHOST) != 0) {
 		buf[0] = '\0';
 		return (NULL);

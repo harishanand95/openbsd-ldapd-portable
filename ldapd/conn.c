@@ -244,6 +244,7 @@ conn_accept(int fd, short why, void *data)
 		return;
 	}
 
+#ifdef HAVE_GETPEEREID
 	if (l->ss.ss_family == AF_UNIX) {
 		uid_t		 euid;
 		gid_t		 egid;
@@ -252,7 +253,9 @@ conn_accept(int fd, short why, void *data)
 			log_warnx("conn_accept: getpeereid");
 		else
 			log_debug("accepted local connection by uid %d", euid);
-	} else {
+	} else
+#endif
+	{
 		print_host(&remote_addr, host, sizeof(host));
 		log_debug("accepted connection from %s on fd %d", host, afd);
 	}

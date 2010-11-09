@@ -23,8 +23,11 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 
+#include <arpa/inet.h>
+
 #include <err.h>
 #include <errno.h>
+#include <grp.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
@@ -338,6 +341,9 @@ ldape(struct passwd *pw, char *csockpath, int pipe_parent2ldap[2])
 	struct event		 ev_sigchld;
 	struct event		 ev_sighup;
 	char			 host[128];
+#if (!defined(HAVE_SS_LEN_IN_SS) && !defined(HAVE___SS_LEN_IN_SS)) || defined(__APPLE__)
+	socklen_t		 addrlen;
+#endif
 
 	TAILQ_INIT(&conn_list);
 
@@ -395,7 +401,19 @@ ldape(struct passwd *pw, char *csockpath, int pipe_parent2ldap[2])
 			log_info("listening on %s:%d", host, ntohs(l->port));
 		}
 
+#if (defined(HAVE_SS_LEN_IN_SS) || defined(HAVE___SS_LEN_IN_SS)) && !defined(__APPLE__)
 		if (bind(l->fd, (struct sockaddr *)&l->ss, l->ss.ss_len) != 0)
+#else
+		if (l->ss.ss_family == AF_UNIX)
+			addrlen = sizeof(struct sockaddr_un);
+		else if (l->ss.ss_family == AF_INET)
+			addrlen = sizeof(struct sockaddr_in);
+		else if (l->ss.ss_family == AF_INET6)
+			addrlen = sizeof(struct sockaddr_in6);
+		else
+			addrlen = sizeof(l->ss);
+		if (bind(l->fd, (struct sockaddr *)&l->ss, addrlen) != 0)
+#endif
 			fatal("ldape: bind");
 		if (listen(l->fd, 20) != 0)
 			fatal("ldape: listen");

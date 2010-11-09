@@ -29,14 +29,19 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <net/if.h>
+#ifdef HAVE_NET_IF_MEDIA_H
 #include <net/if_media.h>
+#endif
+#ifdef HAVE_NET_IF_TYPES_H
 #include <net/if_types.h>
+#endif
 
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <event.h>
 

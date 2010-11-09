@@ -46,13 +46,17 @@
  *  XXX should hash the node address for privacy issues
  */
 
+#include "compat.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <net/if.h>
+#ifdef HAVE_NET_IF_TYPES_H 
 #include <net/if_types.h>
+#endif
+#ifdef HAVE_NET_IF_DL_H 
 #include <net/if_dl.h>
-#include <sys/file.h>
+#endif
+#include <sys/time.h>
 
 #include <fcntl.h>
 #include <ifaddrs.h>
