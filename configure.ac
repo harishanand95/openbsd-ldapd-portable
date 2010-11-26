@@ -11,6 +11,7 @@ AC_LIBOBJ([imsg-buffer])
 
 AC_CHECK_FUNCS([setproctitle setresgid auth_userokay getpeereid])
 AC_REPLACE_FUNCS([memrchr strlcpy strlcat strtonum arc4random])
+AC_CHECK_FUNC(strvisx, , [AC_LIBOBJ(vis)])
 AC_CHECK_FUNC(arc4random_buf, , [AC_LIBOBJ(arc4random)])
 
 AC_SEARCH_LIBS(crypt, [crypt], , [

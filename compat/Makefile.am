@@ -2,7 +2,8 @@ noinst_HEADERS = \
 	imsg.h \
 	compat.h \
 	sys/tree.h \
-	sys/queue.h
+	sys/queue.h \
+	vis.h
 
 dist_noinst_DATA = \
 	arc4random.c \
@@ -12,5 +13,6 @@ dist_noinst_DATA = \
 	memrchr.c \
 	strlcat.c \
 	strlcpy.c \
-	strtonum.c
+	strtonum.c \
+	vis.c
 
