@@ -4,6 +4,7 @@
 **/Makefile
 **/Makefile\.in
 **/aclocal\.m4
+**/.idea
 config\.h
 config\.h\.in
 config\.log

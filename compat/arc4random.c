@@ -1,152 +1,135 @@
 /*
- * Copyright (c) 1999,2000,2004 Damien Miller <djm@mindrot.org>
+ * Arc4 random number generator for OpenBSD.
+ * Copyright 1996 David Mazieres <dm@lcs.mit.edu>.
  *
- * Permission to use, copy, modify, and distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ * Modification and redistribution in source and binary forms is
+ * permitted provided that due credit is given to the author and the
+ * OpenBSD project by leaving this copyright notice intact.
  */
-
-#include <sys/types.h>
-#include <sys/time.h>
-
-#include <string.h>
-#include <stdlib.h>
-#include <stdarg.h>
-
-#include "ldapd.h"
-
-#ifndef HAVE_ARC4RANDOM
-
-#include <openssl/rand.h>
-#include <openssl/rc4.h>
-#include <openssl/err.h>
-
-/* Size of key to use */
-#define SEED_SIZE 20
-
-/* Number of bytes to reseed after */
-#define REKEY_BYTES	(1 << 24)
-
-static int rc4_ready = 0;
-static RC4_KEY rc4;
-
-unsigned int
-arc4random(void)
-{
-	unsigned int r = 0;
-	static int first_time = 1;
-
-	if (rc4_ready <= 0) {
-#if 0
-		if (first_time)
-			seed_rng();
-#endif
-		first_time = 0;
-		arc4random_stir();
-	}
-
-	RC4(&rc4, sizeof(r), (unsigned char *)&r, (unsigned char *)&r);
-
-	rc4_ready -= sizeof(r);
-	
-	return(r);
-}
-
-void
-arc4random_stir(void)
-{
-	unsigned char rand_buf[SEED_SIZE];
-	int i;
-
-	memset(&rc4, 0, sizeof(rc4));
-	if (RAND_bytes(rand_buf, sizeof(rand_buf)) <= 0) {
-		log_warnx("RAND_bytes returned error %ld", ERR_get_error());
-		fatal("Couldn't obtain random bytes");
-	}
-	RC4_set_key(&rc4, sizeof(rand_buf), rand_buf);
-
-	/*
-	 * Discard early keystream, as per recommendations in:
-	 * http://www.wisdom.weizmann.ac.il/~itsik/RC4/Papers/Rc4_ksa.ps
-	 */
-	for(i = 0; i <= 256; i += sizeof(rand_buf))
-		RC4(&rc4, sizeof(rand_buf), rand_buf, rand_buf);
-
-	memset(rand_buf, 0, sizeof(rand_buf));
-
-	rc4_ready = REKEY_BYTES;
-}
-#endif /* !HAVE_ARC4RANDOM */
-
-#ifndef HAVE_ARC4RANDOM_BUF
-void
-arc4random_buf(void *_buf, size_t n)
-{
-	size_t i;
-	u_int32_t r = 0;
-	char *buf = (char *)_buf;
-
-	for (i = 0; i < n; i++) {
-		if (i % 4 == 0)
-			r = arc4random();
-		buf[i] = r & 0xff;
-		r >>= 8;
-	}
-	i = r = 0;
-}
-#endif /* !HAVE_ARC4RANDOM_BUF */
-
-#ifndef HAVE_ARC4RANDOM_UNIFORM
 /*
- * Calculate a uniformly distributed random number less than upper_bound
- * avoiding "modulo bias".
+ * This code is derived from section 17.1 of Applied Cryptography,
+ * second edition, which describes a stream cipher allegedly
+ * compatible with RSA Labs "RC4" cipher (the actual description of
+ * which is a trade secret).  The same algorithm is used as a stream
+ * cipher called "arcfour" in Tatu Ylonen's ssh package.
  *
- * Uniformity is achieved by generating new random numbers until the one
- * returned is outside the range [0, 2**32 % upper_bound).  This
- * guarantees the selected random number will be inside
- * [2**32 % upper_bound, 2**32) which maps back to [0, upper_bound)
- * after reduction modulo upper_bound.
+ * Here the stream cipher has been modified always to include the time
+ * when initializing the state.  That makes it impossible to
+ * regenerate the same random sequence twice, so this can't be used
+ * for encryption, but will generate good random numbers.
+ *
+ * RC4 is a registered trademark of RSA Laboratories.
  */
-u_int32_t
-arc4random_uniform(u_int32_t upper_bound)
+
+#include <sys/time.h>
+#include <fcntl.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include "arc4random.h"
+struct arc4_stream {
+	uint8_t i;
+	uint8_t j;
+	uint8_t s[256];
+};
+static int rs_initialized;
+static struct arc4_stream rs;
+static int arc4_count;
+static void
+arc4_init(struct arc4_stream *as)
 {
-	u_int32_t r, min;
-
-	if (upper_bound < 2)
-		return 0;
-
-#if (ULONG_MAX > 0xffffffffUL)
-	min = 0x100000000UL % upper_bound;
-#else
-	/* Calculate (2**32 % upper_bound) avoiding 64-bit math */
-	if (upper_bound > 0x80000000)
-		min = 1 + ~upper_bound;		/* 2**32 - upper_bound */
-	else {
-		/* (2**32 - (x * 2)) % x == 2**32 % x when x <= 2**31 */
-		min = ((0xffffffff - (upper_bound * 2)) + 1) % upper_bound;
-	}
-#endif
-
-	/*
-	 * This could theoretically loop forever but each retry has
-	 * p > 0.5 (worst case, usually far better) of selecting a
-	 * number inside the range we need, so it should rarely need
-	 * to re-roll.
-	 */
-	for (;;) {
-		r = arc4random();
-		if (r >= min)
-			break;
-	}
-
-	return r % upper_bound;
+	int n;
+	for (n = 0; n < 256; n++)
+		as->s[n] = n;
+	as->i = 0;
+	as->j = 0;
 }
-#endif /* !HAVE_ARC4RANDOM_UNIFORM */
+static void
+arc4_addrandom(struct arc4_stream *as, unsigned char *dat, int datlen)
+{
+	int n;
+	uint8_t si;
+	as->i--;
+	for (n = 0; n < 256; n++) {
+		as->i = (as->i + 1);
+		si = as->s[as->i];
+		as->j = (as->j + si + dat[n % datlen]);
+		as->s[as->i] = as->s[as->j];
+		as->s[as->j] = si;
+	}
+	as->j = as->i;
+}
+static uint8_t
+arc4_getbyte(struct arc4_stream *as)
+{
+	uint8_t si, sj;
+	as->i = (as->i + 1);
+	si = as->s[as->i];
+	as->j = (as->j + si);
+	sj = as->s[as->j];
+	as->s[as->i] = sj;
+	as->s[as->j] = si;
+	return (as->s[(si + sj) & 0xff]);
+}
+static uint32_t
+arc4_getword(struct arc4_stream *as)
+{
+	uint32_t val;
+	val = arc4_getbyte(as) << 24;
+	val |= arc4_getbyte(as) << 16;
+	val |= arc4_getbyte(as) << 8;
+	val |= arc4_getbyte(as);
+	return val;
+}
+static void
+arc4_stir(struct arc4_stream *as)
+{
+	int fd;
+	struct {
+		struct timeval tv;
+		unsigned int rnd[(128 - sizeof(struct timeval)) /
+			sizeof(unsigned int)];
+	}       rdat;
+	int n;
+	gettimeofday(&rdat.tv, NULL);
+	fd = open("/dev/urandom", O_RDONLY);
+	if (fd != -1) {
+		n = read(fd, rdat.rnd, sizeof(rdat.rnd));
+		close(fd);
+	}
+	/* fd < 0?  Ah, what the heck. We'll just take
+	 * whatever was on the stack... */
+	arc4_addrandom(as, (void *) &rdat, sizeof(rdat));
+	/*
+	 * Throw away the first N words of output, as suggested in the
+	 * paper "Weaknesses in the Key Scheduling Algorithm of RC4"
+	 * by Fluher, Mantin, and Shamir.  (N = 256 in our case.)
+	 */
+	for (n = 0; n < 256 * 4; n++)
+		arc4_getbyte(as);
+	arc4_count = 1600000;
+}
+void
+arc4random_stir()
+{
+	if (!rs_initialized) {
+		arc4_init(&rs);
+		rs_initialized = 1;
+	}
+	arc4_stir(&rs);
+}
+void
+arc4random_addrandom(unsigned char *dat, int datlen)
+{
+	if (!rs_initialized)
+		arc4random_stir();
+	arc4_addrandom(&rs, dat, datlen);
+}
+uint32_t
+arc4random()
+{
+	arc4_count -= 4;
+	if (!rs_initialized || arc4_count <= 0)
+		arc4random_stir();
+	return arc4_getword(&rs);
+}
