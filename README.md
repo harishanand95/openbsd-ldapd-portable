@@ -1,6 +1,6 @@
 # openbsd-ldapd-portable
 
-A portable version of the ldapd in OpenBSD. This has tested in ubuntu 16.04
+A portable version of the ldapd in OpenBSD. This was tested in ubuntu 16.04
 
 Thanks to Martin Hedenfalk (http://www.bzero.se/ldapd/)
 
